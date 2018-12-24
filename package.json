@@ -1,6 +1,6 @@
 {
   "name": "spf-check",
-  "version": "0.1",
+  "version": "0.1.0",
   "description": "SPF validator",
   "keywords": [
     "spf",
