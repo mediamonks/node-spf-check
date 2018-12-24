@@ -15,7 +15,7 @@ describe('spf-check', () => {
     it('returns TempError when dns.resolve fails', async () => {
         const resolve = spyOn(dns, 'resolve');
         await resolve.withArgs('example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
-            callback(new Error('queryTxt ENOTFOUND example.com'));
+            callback(new Error('queryTxt ESERVFAIL example.com'));
         });
 
         await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.TempError);
@@ -27,7 +27,7 @@ describe('spf-check', () => {
         const resolve = spyOn(dns, 'resolve');
 
         await resolve.withArgs('_1.example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
-            callback(new Error('queryTxt ENOTFOUND example.com'));
+            callback(new Error('queryTxt ESERVFAIL example.com'));
         });
 
         await resolve.withArgs('_0.example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
@@ -45,6 +45,17 @@ describe('spf-check', () => {
         await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.TempError);
 
         expect(resolve).toHaveBeenCalledTimes(4);
+    });
+
+    it('returns None when domain is not found', async () => {
+        const resolve = spyOn(dns, 'resolve');
+        await resolve.withArgs('example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
+            callback(new Error('queryTxt ENOTFOUND example.com'));
+        });
+
+        await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.None);
+
+        expect(resolve).toHaveBeenCalledTimes(1);
     });
 
     it('returns None when no TXT records are found', async () => {

@@ -58,7 +58,13 @@ class SPF {
                 this.queryDNSCount++;
 
                 if (err) {
-                    reject(new SPFResult(results.TempError, err.message));
+                    // If the DNS lookup returns "domain does not exist",
+                    // immediately returns the result "None".
+                    if ((new RegExp('queryTxt (ENOTFOUND|ENODATA) ' + hostname)).test(err.message)) {
+                        reject(new SPFResult(results.None, 'Domain does not exists'));
+                    } else {
+                        reject(new SPFResult(results.TempError, err.message));
+                    }
                 } else {
                     if (rrtype === 'TXT') {
                         resolve(_.map(records, record => {
