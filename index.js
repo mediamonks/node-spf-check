@@ -244,7 +244,7 @@ class SPF {
         switch (mechanism.type) {
             case 'version':
                 if (mechanism.value !== 'spf' + this.options.version) {
-                    throw new SPFResult(results.PermError, 'Version "' + + '"');
+                    throw new SPFResult(results.PermError, 'Version "' + mechanism.value + '" not supported');
                 }
                 return false;
 
