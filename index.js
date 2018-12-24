@@ -125,10 +125,9 @@ class SPF {
                 const exchanges = await this.resolveDNS(mechanism.value || hostname, 'MX');
 
                 // Then it performs an address lookup on each MX name returned.
-                _.map(exchanges, async record => {
-                    record.records = await this.resolveDNS(record.exchange, rrtype);
-                    return record;
-                });
+                for (let e = 0; e < exchanges.length; e++) {
+                    exchanges[e].records = await this.resolveDNS(exchanges[e].exchange, rrtype);
+                };
 
                 mechanism.exchanges = _.sortBy(exchanges, 'priority');
             }
