@@ -19,7 +19,9 @@
     "nyc": "^13.1.0"
   },
   "scripts": {
-    "test": "nyc jasmine"
+    "test": "jasmine",
+    "cov": "nyc jasmine",
+    "coverage": "nyc report --reporter=html jasmine"
   },
   "nyc": {
     "exclude": [
