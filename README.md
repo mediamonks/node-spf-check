@@ -1,4 +1,4 @@
-# ✉️  spf-check
+# ✉️  spf-check [![Build Status](https://travis-ci.org/mediamonks/node-spf-check.svg)](https://travis-ci.org/mediamonks/node-spf-check) [![Coverage Status](https://coveralls.io/repos/github/mediamonks/node-spf-check/badge.svg)](https://coveralls.io/github/mediamonks/node-spf-check)
 
 [RFC4408]: https://tools.ietf.org/html/rfc4408
 [RFC4408-2.5]: https://tools.ietf.org/html/rfc4408#section-2.5

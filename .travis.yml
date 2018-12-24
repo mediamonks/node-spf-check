@@ -1,0 +1,17 @@
+---
+
+language: node_js
+
+node_js:
+  - lts/*
+
+cache: yarn
+
+before_script:
+  - yarn global add jasmine nyc coveralls
+
+script:
+  - nyc jasmine
+
+after_success:
+  - nyc report --reporter=text-lcov | coveralls
