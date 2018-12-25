@@ -43,9 +43,30 @@ class SPF {
         this.queryDNSCount = 0;
 
         this.options = {
+            /** Conforms to https://tools.ietf.org/html/rfc4408 */
             version: 1,
+
+            /** Resolve all mechanisms before evaluating them. This will cause
+             *  many DNS queries to be made and possible hit the 10 queries hard
+             *  limit. Note that "redirect" mechanisms always resolves first no
+             *  matter the value of this option.
+             */
+            prefetch: false,
+
             ...options,
         };
+    }
+
+    async resolveMX(hostname, rrtype) {
+        // First performs an MX lookup.
+        const exchanges = await this.resolveDNS(hostname, 'MX');
+
+        // Then it performs an address lookup on each MX name returned.
+        for (let e = 0; e < exchanges.length; e++) {
+            exchanges[e].records = await this.resolveDNS(exchanges[e].exchange, rrtype);
+        };
+
+        return _.sortBy(exchanges, 'priority');
     }
 
     async resolveDNS(hostname, rrtype) {
@@ -122,20 +143,26 @@ class SPF {
             // Parsed mechanisms to be resolved recursively.
             const mechanism = parsed.mechanisms[i];
 
+            if (mechanism.type === 'redirect') {
+                if (!catchAll) {
+                    // Any "redirect" modifier has effect only when there is
+                    // not an "all" mechanism.
+                    resolved = _.concat(resolved, await this.resolveSPF(mechanism.value, rrtype));
+                }
+
+                continue;
+            }
+
             if (mechanism.type === 'a') {
-                mechanism.records = await this.resolveDNS(mechanism.value || hostname, rrtype);
+                mechanism.resolve = async () => {
+                    return { records: await this.resolveDNS(mechanism.value || hostname, rrtype) };
+                };
             }
 
             if (mechanism.type === 'mx') {
-                // First performs an MX lookup.
-                const exchanges = await this.resolveDNS(mechanism.value || hostname, 'MX');
-
-                // Then it performs an address lookup on each MX name returned.
-                for (let e = 0; e < exchanges.length; e++) {
-                    exchanges[e].records = await this.resolveDNS(exchanges[e].exchange, rrtype);
+                mechanism.resolve = async () => {
+                    return { exchanges: await this.resolveMX(mechanism.value || hostname, rrtype) };
                 };
-
-                mechanism.exchanges = _.sortBy(exchanges, 'priority');
             }
 
             if (mechanism.type === 'ip4' || mechanism.type === 'ip6') {
@@ -153,17 +180,15 @@ class SPF {
             }
 
             if (mechanism.type === 'include') {
-                mechanism.includes = await this.resolveSPF(mechanism.value, rrtype);
+                mechanism.resolve = async () => {
+                    return { includes: await this.resolveSPF(mechanism.value, rrtype) };
+                };
             }
 
-            if (mechanism.type === 'redirect') {
-                if (!catchAll) {
-                    // Any "redirect" modifier has effect only when there is
-                    // not an "all" mechanism.
-                    resolved = _.concat(resolved, await this.resolveSPF(mechanism.value, rrtype));
-                }
-
-                continue;
+            if (this.options.prefetch && mechanism.resolve) {
+                // Early fetch all DNS records before any evaluation. Will fail
+                // fast in some cases that will pass without.
+                _.assign(mechanism, await mechanism.resolve());
             }
 
             resolved.push(mechanism);
@@ -222,7 +247,7 @@ class SPF {
         }
 
         try {
-            return this.evaluate(mechanisms, addr);
+            return await this.evaluate(mechanisms, addr);
         } catch (err) {
             if (err instanceof SPFResult) {
                 return err;
@@ -232,11 +257,15 @@ class SPF {
         }
     }
 
-    evaluate(mechanisms, addr) {
+    async evaluate(mechanisms, addr) {
         // TODO implement exp
 
         for (let i = 0; i < mechanisms.length; i++) {
-            if (this.match(mechanisms[i], addr)) {
+            if (!this.options.prefetch && mechanisms[i].resolve) {
+                _.assign(mechanisms[i], await mechanisms[i].resolve());
+            }
+
+            if (await this.match(mechanisms[i], addr)) {
                 return new SPFResult(mechanisms[i].prefixdesc);
             }
         }
@@ -246,7 +275,7 @@ class SPF {
         return new SPFResult(results.Neutral);
     }
 
-    match(mechanism, addr) {
+    async match(mechanism, addr) {
         switch (mechanism.type) {
             case 'version':
                 if (mechanism.value !== 'spf' + this.options.version) {
@@ -270,7 +299,7 @@ class SPF {
                 return addr.match(mechanism.address);
 
             case 'include':
-                const result = this.evaluate(mechanism.includes, addr);
+                const result = await this.evaluate(mechanism.includes, addr);
 
                 if (result.result === results.None) {
                     throw new SPFResult(results.PermError, 'Validation for "include:' + mechanism.value + '" missed');
