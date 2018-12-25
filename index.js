@@ -37,6 +37,13 @@ class SPFResult {
 
         /** Description text. */
         this.message = message;
+
+        /** Last matched mechanism or "default" is none. Used in Received-SPF
+         *  header field. */
+        this.mechanism = "default";
+
+        /** List of all matched mechanisms (order from last to first). */
+        this.matched = [];
     }
 }
 
@@ -264,12 +271,27 @@ class SPF {
         // TODO implement exp
 
         for (let i = 0; i < mechanisms.length; i++) {
-            if (!this.options.prefetch && mechanisms[i].resolve) {
-                _.assign(mechanisms[i], await mechanisms[i].resolve());
+            const mechanism = mechanisms[i];
+
+            if (!this.options.prefetch && mechanism.resolve) {
+                _.assign(mechanism, await mechanism.resolve());
             }
 
-            if (await this.match(mechanisms[i], addr)) {
-                return new SPFResult(mechanisms[i].prefixdesc);
+            if (mechanism.type === 'include') {
+                mechanism.evaluated = await this.evaluate(mechanism.includes, addr);
+            }
+
+            if (this.match(mechanism, addr)) {
+                const result = new SPFResult(mechanism.prefixdesc);
+
+                result.mechanism = mechanism.type;
+                result.matched = [mechanism.type];
+
+                if (mechanism.type === 'include') {
+                    result.matched = _.merge(result.matched, mechanism.evaluated.matched);
+                }
+
+                return result;
             }
         }
 
@@ -278,7 +300,7 @@ class SPF {
         return new SPFResult(results.Neutral);
     }
 
-    async match(mechanism, addr) {
+    match(mechanism, addr) {
         switch (mechanism.type) {
             case 'version':
                 if (mechanism.value !== 'spf' + this.options.version) {
@@ -302,13 +324,11 @@ class SPF {
                 return addr.match(mechanism.address);
 
             case 'include':
-                const result = await this.evaluate(mechanism.includes, addr);
-
-                if (result.result === results.None) {
+                if (mechanism.evaluated.result === results.None) {
                     throw new SPFResult(results.PermError, 'Validation for "include:' + mechanism.value + '" missed');
                 }
 
-                return result.result === results.Pass;
+                return mechanism.evaluated.result === results.Pass;
 
             // TODO implement ptr
             // TODO implement exists
