@@ -32,7 +32,10 @@ class SPFResult {
             message = messages[result];
         }
 
+        /** An string value of results constant. */
         this.result = result;
+
+        /** Description text. */
         this.message = message;
     }
 }
