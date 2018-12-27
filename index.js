@@ -38,7 +38,7 @@ class SPFResult {
         /** Description text. */
         this.message = message;
 
-        /** Last matched mechanism or "default" is none. Used in Received-SPF
+        /** Last matched mechanism or "default" if none. Used in Received-SPF
          *  header field. */
         this.mechanism = "default";
 
