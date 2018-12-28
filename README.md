@@ -29,13 +29,14 @@ result and read the expected message.
 
 ```js
 const validator = new spf.SPF('mediamonks.com', 'info@mediamonks.com');
-const result = validator.check('185.16.22.2');
 
-assert(result instanceof spf.SPFResult);
+validator.check('185.16.22.2').then(result => {
+    assert(result instanceof spf.SPFResult);
 
-if (result.result !== spf.Pass || result.result !== spf.Neutral) {
-    console.error(result.message);
-}
+    if (result.result !== spf.Pass || result.result !== spf.Neutral) {
+        console.error(result.message);
+    }
+});
 ```
 
 ## License
