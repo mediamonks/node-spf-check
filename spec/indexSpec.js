@@ -99,6 +99,10 @@ describe('spf-check', () => {
         //    callback(null, [ '127.0.0.1' ]);
         //});
 
+        await resolve.withArgs('srv.example.com', 'A', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
+            callback(null, [ '192.168.0.10' ]);
+        });
+
         await resolve.withArgs('pop.example.com', 'A', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
             callback(null, [ '192.168.0.9' ]);
         });
@@ -112,7 +116,7 @@ describe('spf-check', () => {
         });
 
         await resolve.withArgs('_1.example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
-            callback(null, [ [ 'v=spf1 a a:smtp.example.com', ' a:pop.example.com ', 'a:local.example.com -all' ] ]);
+            callback(null, [ [ 'v=spf1 a a:smtp.example.com', ' a:pop.example.com a:srv.example.com ', 'a:local.example.com -all' ] ]);
         });
 
         await resolve.withArgs('imap.example.com', 'A', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
@@ -123,6 +127,8 @@ describe('spf-check', () => {
             callback(null, [ '192.168.0.1' ]);
         });
 
+        // This will not count for mechanisms limit but needs a return value if
+        // not spyOn will swallow it.
         await resolve.withArgs('mx.example.com', 'A', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
             callback(null, [ '192.168.0.42' ]);
         });
@@ -145,7 +151,36 @@ describe('spf-check', () => {
 
         await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.PermError);
 
-        expect(resolve).toHaveBeenCalledTimes(10);
+        // This are 10 calls for each mechanism and one call for the A records
+        // of the MX exchange.
+        expect(resolve).toHaveBeenCalledTimes(11);
+    });
+
+    it('returns PermError when DNS lookups for MX mechanism exeeds limit', async () => {
+        const resolve = spyOn(dns, 'resolve');
+
+        await resolve.withArgs('example.com', 'MX', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
+            callback(null, [
+                { priority: 5, exchange: 'mx0.example.com' },
+                { priority: 10, exchange: 'mx1.example.com' },
+                { priority: 20, exchange: 'mx2.example.com' },
+                { priority: 30, exchange: 'mx3.example.com' },
+                { priority: 40, exchange: 'mx4.example.com' },
+                { priority: 50, exchange: 'mx5.example.com' },
+                { priority: 60, exchange: 'mx6.example.com' },
+                { priority: 70, exchange: 'mx7.example.com' },
+                { priority: 80, exchange: 'mx8.example.com' },
+                { priority: 90, exchange: 'mx9.example.com' },
+            ]);
+        });
+
+        await resolve.withArgs('example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
+            callback(null, [ [ 'v=spf1 ', 'mx +all' ] ]);
+        });
+
+        await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.PermError);
+
+        expect(resolve).toHaveBeenCalledTimes(2);
     });
 
     it('returns Neutral when no mechanism is matched', async () => {

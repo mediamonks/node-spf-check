@@ -2,6 +2,11 @@
 
 All notable changes grouped by version.
 
+## [0.3.0] 2018-12-28
+
+ - `BC-BREAK` Now DNS lookup limit is enforced as 10 maximum queries for mechanisms and 10 maximum queries for retrieving A record out of exchanges returned in the MX mechanism.
+ - New option `{ maxDNS: 10 }` to change the DNS lookup limit.
+
 ## [0.2.0] 2018-12-25
 
  - `BC-BREAK` Now DNS queries will be performed at evalution time. Previous checks that returned `TempFail` might now return another value on an early match. Old method can be re-activated with `{ prefetch: true }` options.

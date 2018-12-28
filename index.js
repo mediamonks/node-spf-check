@@ -63,6 +63,11 @@ class SPF {
              */
             prefetch: false,
 
+            /** Hard limit on the number of DNS lookups, including any lookups
+             *  caused by the use of the "include" mechanism or the "redirect"
+             *  modifier. */
+            maxDNS: 10,
+
             ...options,
         };
     }
@@ -71,22 +76,31 @@ class SPF {
         // First performs an MX lookup.
         const exchanges = await this.resolveDNS(hostname, 'MX');
 
+        // Check the number of exchanges to retrieve A records and limit before
+        // doing any DNS lookup.
+        if (exchanges.length >= this.options.maxDNS) {
+            throw new SPFResult(results.PermError, 'Limit of DNS lookups reached when processing MX mechanism');
+        }
+
         // Then it performs an address lookup on each MX name returned.
         for (let e = 0; e < exchanges.length; e++) {
-            exchanges[e].records = await this.resolveDNS(exchanges[e].exchange, rrtype);
+            exchanges[e].records = await this.resolveDNS(exchanges[e].exchange, rrtype, /*lookupLimit=*/false);
         };
 
         return _.sortBy(exchanges, 'priority');
     }
 
-    async resolveDNS(hostname, rrtype) {
-        if (this.queryDNSCount > 9) {
+    async resolveDNS(hostname, rrtype, lookupLimit) {
+        // Default behaviour is to throw PermError when limit is reached.
+        lookupLimit = _.isNil(lookupLimit) || lookupLimit === true;
+
+        if (lookupLimit && this.queryDNSCount >= this.options.maxDNS) {
             throw new SPFResult(results.PermError, 'Limit of DNS lookups reached');
         }
 
         return new Promise((resolve, reject) => {
             dns.resolve(hostname, rrtype, (err, records) => {
-                this.queryDNSCount++;
+                lookupLimit && this.queryDNSCount++;
 
                 if (err) {
                     // If the DNS lookup returns "domain does not exist",
