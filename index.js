@@ -48,7 +48,27 @@ class SPFResult {
 }
 
 class SPF {
-    constructor(options) {
+    constructor(domain, sender, options) {
+        if (_.isObject(domain) && _.isUndefined(sender) && _.isUndefined(options)) {
+            options = domain;
+            domain = undefined;
+        } else if (_.isObject(sender) && _.isUndefined(options)) {
+            options = sender;
+            sender = undefined;
+        }
+
+        this.domain = _.isString(domain) ? domain : _.result(options, 'domain', () => {
+            throw new Error('Undefined domain');
+        });
+
+        this.sender = _.isString(sender) ? sender : _.get(options, 'sender', 'postmaster@' + this.domain);
+
+        // If the sender has no localpart, substitute the string "postmaster"
+        // for the localpart.
+        if (!_.includes(this.sender, '@')) {
+            this.sender = 'postmaster@' + this.sender;
+        }
+
         this.warnings = [];
         this.queryDNSCount = 0;
 
@@ -225,21 +245,13 @@ class SPF {
         return resolved;
     }
 
-    async check(ip, domain, sender) {
+    async check(ip) {
         if (!ipaddr.isValid(ip)) {
             return new SPFResult(results.None, 'Malformed IP for comparison');
         }
 
-        if (!tlsjs.isValid(domain)) {
+        if (!tlsjs.isValid(this.domain)) {
             return new SPFResult(results.None, 'No SPF record can be found on malformed domain');
-        }
-
-        // If the sender has no localpart, substitute the string "postmaster"
-        // for the localpart.
-        if (!_.isString(sender)) {
-            sender = 'postmaster@' + domain;
-        } else if (!_.includes(sender, '@')) {
-            sender = 'postmaster@' + sender;
         }
 
         // List of parsed mechanisms done by `spf-parse` module. Each value is
@@ -250,7 +262,7 @@ class SPF {
         const addr = ipaddr.parse(ip);
 
         try {
-            mechanisms = await this.resolveSPF(domain,
+            mechanisms = await this.resolveSPF(this.domain,
                 // When any mechanism fetches host addresses to compare with
                 // given IP, when it is an IPv4 address, A records are fetched,
                 // when it is an IPv6 address, AAAA records are fetched instead.
@@ -356,8 +368,8 @@ class SPF {
 }
 
 module.exports = async function(ip, domain, sender, options) {
-    let spf = new SPF(options);
-    let res = await spf.check(ip, domain, sender);
+    let spf = new SPF(domain, sender, options);
+    let res = await spf.check(ip);
 
     return res.result;
 };

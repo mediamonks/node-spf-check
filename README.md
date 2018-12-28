@@ -28,13 +28,13 @@ This module also exports `SPF` and `SPFResult` classes to allow inspect the
 result and read the expected message.
 
 ```js
-const validator = new spf.SPF();
-const result = validator.check(ip, domain, sender);
+const validator = new spf.SPF('mediamonks.com', 'info@mediamonks.com');
+const result = validator.check('185.16.22.2');
 
-result instanceof spf.SPFResult; // true
+assert(result instanceof spf.SPFResult);
 
-if (result.result !== spf.Pass || result.result !== spf.None) {
-    console.log(result.message);
+if (result.result !== spf.Pass || result.result !== spf.Neutral) {
+    console.error(result.message);
 }
 ```
 
