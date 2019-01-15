@@ -18,3 +18,12 @@ script:
 
 after_success:
   - npm run --silent lcov | coveralls
+
+deploy:
+  - provider: npm
+    email: 'devmonk@mediamonks.com'
+    api_key: $NPM_TOKEN
+    on:
+      tags: true
+      node: stable
+    skip_cleanup: true
