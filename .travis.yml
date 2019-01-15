@@ -10,10 +10,10 @@ node_js:
 cache: yarn
 
 before_script:
-  - yarn global add jasmine nyc coveralls
+  - yarn global add coveralls
 
 script:
-  - nyc jasmine
+  - npm run testcov
 
 after_success:
-  - nyc report --reporter=text-lcov | coveralls
+  - npm run --silent lcov | coveralls

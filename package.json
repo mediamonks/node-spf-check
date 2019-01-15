@@ -20,8 +20,9 @@
   },
   "scripts": {
     "test": "jasmine",
-    "cov": "nyc jasmine",
-    "coverage": "nyc report --reporter=html jasmine"
+    "testcov": "nyc jasmine",
+    "htmlcov": "nyc report --reporter=html",
+    "lcov": "nyc report --reporter=text-lcov"
   },
   "nyc": {
     "exclude": [
