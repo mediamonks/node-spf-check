@@ -2,6 +2,10 @@
 
 All notable changes grouped by version.
 
+## [0.4.0] 2019-01-15
+
+Publish NPM package.
+
 ## [0.3.0] 2018-12-28
 
  - `BC-BREAK` Now DNS lookup limit is enforced as 10 maximum queries for mechanisms and 10 maximum queries for retrieving A record out of exchanges returned in the MX mechanism.
