@@ -347,6 +347,14 @@ class SPF {
 
             case 'ip4':
             case 'ip6':
+                // The parsed CIDR is stored in `mechanism.address` as a tuple
+                // with the IPv4/IPv6 instance as first element and the bits as
+                // second.
+
+                if (addr.kind() !== mechanism.address[0].kind()) {
+                    return false;
+                }
+
                 return addr.match(mechanism.address);
 
             case 'include':

@@ -2,6 +2,10 @@
 
 All notable changes grouped by version.
 
+## [0.4.1] 2019-01-30
+
+Match only IPs of the same kind.
+
 ## [0.4.0] 2019-01-15
 
 Publish NPM package.
