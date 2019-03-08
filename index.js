@@ -159,7 +159,13 @@ class SPF {
             throw new SPFResult(results.PermError, 'There should be exactly one record remaining');
         }
 
-        const parsed = spfParse(records.pop());
+        const record = records.pop();
+
+        if (/[^\x00-\x7f]/.test(record)) {
+            throw new SPFResult(results.PermError, 'Character content of the record should be encoded as US-ASCII');
+        }
+
+        const parsed = spfParse(record);
 
         if (parsed.valid === false) {
             throw new SPFResult(results.PermError, 'There shouldn\'t be any syntax errors');

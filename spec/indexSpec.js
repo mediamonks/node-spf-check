@@ -80,6 +80,17 @@ describe('spf-check', () => {
         expect(resolve).toHaveBeenCalledTimes(1);
     });
 
+    it('returns PermError when TXT is not in US-ASCII', async () => {
+        const resolve = spyOn(dns, 'resolve');
+        await resolve.withArgs('example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {
+            callback(null, [ [ 'v=spf1 ', '' ] ]);
+        });
+
+        await expectAsync(spf('127.0.0.1', 'example.com')).toBeResolvedTo(spf.PermError);
+
+        expect(resolve).toHaveBeenCalledTimes(1);
+    });
+
     it('returns PermError when TXT record contains syntax errors', async () => {
         const resolve = spyOn(dns, 'resolve');
         await resolve.withArgs('example.com', 'TXT', jasmine.any(Function)).and.callFake((_0, _1, callback) => {

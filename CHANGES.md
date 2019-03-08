@@ -2,6 +2,10 @@
 
 All notable changes grouped by version.
 
+## [0.4.2] 2019-MM-DD
+
+ - Returns `PermError` when TXT is not in US-ASCII.
+
 ## [0.4.1] 2019-01-30
 
 Match only IPs of the same kind.
