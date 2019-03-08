@@ -1,7 +1,7 @@
 'use strict';
 
 const dns = require('dns');
-const spf = require('../index.js');
+const spf = require('../index');
 
 describe('spf-check', () => {
     it('returns None when IP address is not valid', async () => {
