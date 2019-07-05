@@ -2,7 +2,7 @@
 
 All notable changes grouped by version.
 
-## [0.4.2] 2019-MM-DD
+## [0.4.2] 2019-07-05
 
  - Returns `PermError` when TXT is not in US-ASCII.
 
