@@ -63,6 +63,14 @@ class SPF {
 
         this.sender = _.isString(sender) ? sender : _.get(options, 'sender', 'postmaster@' + this.domain);
 
+        this.resolver = new dns.Resolver({
+            timeout: options.timeout || -1
+        });
+
+        if (options.dnsServers) {
+            this.resolver.setServers(options.dnsServers);
+        }
+
         // If the sender has no localpart, substitute the string "postmaster"
         // for the localpart.
         if (!_.includes(this.sender, '@')) {
@@ -119,7 +127,7 @@ class SPF {
         }
 
         return new Promise((resolve, reject) => {
-            dns.resolve(hostname, rrtype, (err, records) => {
+            this.resolver.resolve(hostname, rrtype, (err, records) => {
                 lookupLimit && this.queryDNSCount++;
 
                 if (err) {
